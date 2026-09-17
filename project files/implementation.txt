@@ -1,0 +1,622 @@
+Perfect. Then **we start from zero, and I will direct the build**. No need for you to figure out the architecture or what to code next—we already did that work during analysis.
+
+Also, your course data gives us enough to build the first vertical slice without waiting for anything else.
+
+### 📍 ATLAS STATUS — IMPLEMENTATION PHASE
+
+```text
+Requirements        ✅
+Analysis             ✅
+GRASP                ✅
+Interaction Diagrams ✅
+DCD                  ✅
+Architecture         ✅
+Database Design      ✅
+API Design           ✅
+────────────────────────────
+Implementation       🚀 WE ARE HERE
+```
+
+Your approved proposal explicitly identifies **student course confirmation** as one of the system workflows, and the proposed stack is JavaScript + Node.js/Express + React + MySQL. 
+
+The proposal also describes development as iterative/incremental, so we're going to build **one complete feature end-to-end**, rather than trying to create the whole system at once. 
+
+# What we're going to build first
+
+Our first working ATLAS slice will be:
+
+```text
+             ATLAS
+               │
+               ▼
+       Student enters year
+               │
+               ▼
+      ATLAS suggests courses
+               │
+               ▼
+       Student verifies them
+          /           \
+      remove          add
+     unwanted      carry/repeat
+      courses        course
+          \           /
+               ▼
+        Confirm Courses
+               │
+               ▼
+       Save to MySQL
+               │
+               ▼
+       View My Timetable
+```
+
+**But we're going to build this in smaller steps.**
+
+---
+
+# STEP 1 — Set up the project
+
+Since the GitHub repository is empty, **do not create random files yet**.
+
+I want us to establish the project structure first.
+
+Our application will have two parts:
+
+```text
+ATLAS/
+│
+├── client/       ← React frontend
+│
+└── server/       ← Node + Express backend
+```
+
+This follows the three-tier architecture in your proposal:
+
+```text
+React PWA
+    ↓
+Node.js + Express
+    ↓
+MySQL
+```
+
+Your proposal specifically specifies React, Node.js/Express and MySQL as the technologies for the system. 
+
+---
+
+# STEP 1A — Create the React frontend
+
+Open **VS Code**.
+
+Open the folder where you want your project to live.
+
+Then open the VS Code terminal:
+
+**Terminal → New Terminal**
+
+Run:
+
+```bash
+npm create vite@latest client
+```
+
+Vite will ask you questions.
+
+Choose:
+
+```text
+Framework: React
+Variant: JavaScript
+```
+
+**Important:** choose **JavaScript**, not TypeScript.
+
+That's consistent with your approved proposal, which specifies JavaScript. 
+
+Then:
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+You should eventually see something similar to:
+
+```text
+Local: http://localhost:5173/
+```
+
+Open that address in your browser.
+
+You should see the default Vite React page.
+
+### STOP HERE.
+
+Don't start modifying the React files yet.
+
+---
+
+# STEP 1B — Create the backend
+
+Open another VS Code terminal.
+
+From the **ATLAS root folder**, run:
+
+```bash
+mkdir server
+cd server
+npm init -y
+```
+
+Then install Express:
+
+```bash
+npm install express cors dotenv
+```
+
+We'll use:
+
+* **Express** → REST API
+* **cors** → allow our React frontend to communicate with the backend
+* **dotenv** → environment configuration
+
+Then install the MySQL driver:
+
+```bash
+npm install mysql2
+```
+
+We'll use `mysql2` to communicate with MySQL.
+
+---
+
+# STEP 1C — Create the initial backend structure
+
+Inside:
+
+```text
+server/
+```
+
+create:
+
+```text
+server/
+│
+├── src/
+│   ├── controllers/
+│   ├── domain/
+│   ├── repositories/
+│   ├── services/
+│   ├── routes/
+│   ├── middleware/
+│   ├── database/
+│   └── app.js
+│
+├── .env
+├── .gitignore
+└── package.json
+```
+
+This isn't arbitrary folder decoration.
+
+It corresponds to the design we already produced:
+
+| Design concept      | Implementation  |
+| ------------------- | --------------- |
+| Controller          | `controllers/`  |
+| Domain objects      | `domain/`       |
+| Repository          | `repositories/` |
+| Source processor    | `services/`     |
+| API endpoints       | `routes/`       |
+| JWT/RBAC later      | `middleware/`   |
+| MySQL               | `database/`     |
+| Express application | `app.js`        |
+
+And importantly, **we're not going to create every UML class as a JavaScript class just because it appears on the DCD**. Some will become modules, database operations, or plain data structures where that makes more sense.
+
+---
+
+# STEP 1D — Don't build authentication yet
+
+This is important.
+
+Your proposal does specify JWT/RBAC. 
+
+But **we are not implementing it first**.
+
+Why?
+
+Because tomorrow your supervisor wants to see something actually working.
+
+If we spend our remaining time doing:
+
+```text
+JWT
+ ↓
+bcrypt
+ ↓
+login
+ ↓
+roles
+ ↓
+middleware
+ ↓
+tokens
+```
+
+we could end tomorrow with a beautiful login page and **no actual ATLAS functionality**.
+
+Instead:
+
+```text
+COURSE CONFIRMATION
+        ↓
+DATABASE
+        ↓
+TIMETABLE
+```
+
+gets demonstrated first.
+
+Then we add authentication around it.
+
+---
+
+# STEP 2 — Create the MySQL database
+
+Once the basic projects exist, we'll create:
+
+```text
+atlas_db
+```
+
+Then initially we'll only need the tables relevant to our feature.
+
+### Core tables
+
+```text
+students
+courses
+course_confirmations
+```
+
+Then, because we want to demonstrate the next part:
+
+```text
+timetables
+timetable_revisions
+timetable_entries
+venues
+lecturers
+```
+
+We don't need to populate all of them immediately.
+
+---
+
+# STEP 3 — Feed in YOUR actual course data
+
+This is where the information you just gave me comes in.
+
+We'll seed:
+
+### Year 1
+
+```text
+PHY 1010
+CHE 1000
+BIO 1401
+BIO 1412
+MAT 1100
+```
+
+### Year 2
+
+```text
+CSC 2901
+CSC 2101
+CSC 2111
+CSC 2702
+CSC 2202
+CSC 2000
+CSC 2912
+```
+
+### Year 3 — Software Engineering
+
+```text
+CSC 3801
+CSC 3600
+CSC 3301
+CSC 3612
+CSC 3712
+CSC 3011
+CSC 3402
+CSC 3009
+```
+
+### Year 4 — Software Engineering
+
+```text
+CSC 4642
+CSC 4035
+CSC 4631
+CSC 4630
+CSC 4505
+CSC 4004
+CSC 4792
+```
+
+And we'll encode the important distinction:
+
+```text
+Year 1 → Common
+Year 2 → Common
+Year 3 → Software Engineering
+Year 4 → Software Engineering
+```
+
+That means when a student chooses:
+
+> **3rd Year + Software Engineering**
+
+the backend can return the appropriate suggested courses.
+
+---
+
+# STEP 4 — Build the backend course API
+
+We'll then create:
+
+```http
+GET /api/student/courses/suggested
+```
+
+and:
+
+```http
+GET /api/courses/search
+```
+
+For example:
+
+```text
+GET /api/student/courses/suggested?year=3&stream=software-engineering
+```
+
+could return:
+
+```json
+[
+  {
+    "courseCode": "CSC 3801",
+    "courseName": "Data Communication & Networks"
+  },
+  {
+    "courseCode": "CSC 3600",
+    "courseName": "Software Engineering"
+  }
+]
+```
+
+Then:
+
+```text
+GET /api/courses/search?q=CSC2702
+```
+
+can allow the student to find a carry/repeat course.
+
+---
+
+# STEP 5 — Build the React course-selection screen
+
+Then we'll make the actual interface.
+
+Something like:
+
+```text
+┌─────────────────────────────────────────┐
+│              ATLAS                      │
+│                                         │
+│        Confirm Your Courses             │
+│                                         │
+│ Year: 3rd Year                          │
+│ Stream: Software Engineering            │
+│                                         │
+│ ☑ CSC 3801                              │
+│   Data Communication & Networks         │
+│                                         │
+│ ☑ CSC 3600                              │
+│   Software Engineering                  │
+│                                         │
+│ ☑ CSC 3301                              │
+│   Programming Languages Design...       │
+│                                         │
+│ ☑ CSC 3612                              │
+│   IT Project Management                 │
+│                                         │
+│             ...                         │
+│                                         │
+│        [ Confirm Courses ]              │
+└─────────────────────────────────────────┘
+```
+
+Then:
+
+> **Looking for a carry/repeat course?**
+
+```text
+[ Search course...                    🔍 ]
+
+CSC 2702 — Database & Information Management
+                                    [+ Add]
+```
+
+---
+
+# STEP 6 — Save the student's choices
+
+The frontend sends:
+
+```http
+POST /api/student/courses/confirm
+```
+
+The backend stores the selections in:
+
+```text
+course_confirmations
+```
+
+So tomorrow you can actually demonstrate:
+
+**Browser → React → Express → MySQL**
+
+rather than merely saying:
+
+> "This feature would eventually work."
+
+---
+
+# STEP 7 — Connect it to the timetable
+
+Then we'll put a **small demonstration timetable** into MySQL.
+
+For example:
+
+```text
+CSC 3600
+Monday
+08:00–10:00
+Room X
+```
+
+```text
+CSC 3712
+Tuesday
+10:00–12:00
+Room Y
+```
+
+Then:
+
+```text
+Student's confirmed courses
+             ↓
+       Database query
+             ↓
+       Matching courses
+             ↓
+      Current timetable
+```
+
+And the student sees:
+
+```text
+MY TIMETABLE
+
+Monday
+08:00 — 10:00
+CSC 3600
+Software Engineering
+Room X
+
+Tuesday
+10:00 — 12:00
+CSC 3712
+Advanced Databases
+Room Y
+```
+
+**That is the feature I want your supervisor to see tomorrow.**
+
+---
+
+# And then everything else comes AFTER
+
+Once this works:
+
+```text
+                  ATLAS
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+ COURSE CONFIRMATION       TIMETABLE VIEW
+        │                       │
+        └───────────┬───────────┘
+                    │
+              IMPLEMENTED
+                    ↓
+              Authentication
+                    ↓
+             Timetable import
+                    ↓
+              Revisions
+                    ↓
+             Lecturer workflow
+                    ↓
+             Offline PWA
+                    ↓
+              etc.
+```
+
+That is the correct way to handle the time pressure: **vertical slice first, then expand horizontally.**
+
+---
+
+## 🚨 Your instruction for right now
+
+**Do only STEP 1.**
+
+Don't create the database yet.
+
+Don't start writing controllers.
+
+Don't start writing React components.
+
+Don't install 25 packages.
+
+### Do this:
+
+**1. Create the React/Vite client**
+
+```bash
+npm create vite@latest client
+```
+
+Choose **React → JavaScript**.
+
+Then:
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+**2. Create the server**
+
+From the ATLAS root:
+
+```bash
+mkdir server
+cd server
+npm init -y
+npm install express cors dotenv mysql2
+```
+
+**3. Create the `src` folders I listed above.**
+
+Then come back and tell me:
+
+> **"Step 1 done."**
+
+If you encounter an error, **don't try random fixes**. Copy the exact error here and we'll solve it together.
+
+Once that's done, **I will give you Step 2**, which will be creating the actual MySQL database and inserting your course data.
+
+We're going to build ATLAS **incrementally and deliberately**, exactly as the project's iterative development approach calls for.
