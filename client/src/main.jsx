@@ -5,7 +5,7 @@ import './styles.css';
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
 
 async function request(path, options) {
-  const response = await fetch(`${API_URL}${path}`, { headers: { 'Content-Type': 'application/json' }, ...options });
+  const response = await fetch(`${API_URL}${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...(options?.headers ?? {}) } });
   const body = await response.text();
   let data;
   try { data = body ? JSON.parse(body) : null; } catch { data = null; }
@@ -55,7 +55,7 @@ function StudentView({ onBack }) {
 
   return <main className="shell">
     <header className="masthead"><button className="back" onClick={onBack}>← Roles</button><div className="brand-mark">A</div><div><p className="eyebrow">Student view</p><h1>Confirm your courses.</h1></div><span className="prototype">PROTOTYPE</span></header>
-    <section className="controls"><label>Year of study<select value={year} onChange={(event) => setYear(event.target.value)}><option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option></select></label><label>Programme stream<select value={stream} onChange={(event) => setStream(event.target.value)}><option value="common">Common</option><option value="software-engineering">Software Engineering</option></select></label></section>
+    <section className="controls"><label>Year of study<select value={year} onChange={(event) => setYear(event.target.value)}><option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option></select></label><label>Programme stream<select value={stream} onChange={(event) => setStream(event.target.value)}><option value="common">Common</option><option value="software-engineering">Software Engineering</option><option value="computer-systems-engineering">Computer Systems Engineering</option><option value="networking-engineering">Networking Engineering</option></select></label></section>
     <div className="workspace"><section className="panel courses"><div className="panel-heading"><div><p className="eyebrow">Step 01</p><h2>Suggested courses</h2></div><span className="count">{selected.length} selected</span></div><div className="course-list">{selected.map((course) => <article className="course-row" key={course.courseCode}><div className="course-code">{course.courseCode}</div><div className="course-name">{course.courseName}{carryCodes.includes(course.courseCode) && <span className="tag">Carry / repeat</span>}</div><button className="remove" onClick={() => removeCourse(course.courseCode)} aria-label={`Remove ${course.courseCode}`}>Remove</button></article>)}</div><button className="primary" onClick={confirmCourses}>Confirm courses <span>→</span></button>{message && <p className="status">{message}</p>}</section><aside className="panel add"><p className="eyebrow">Step 02</p><h2>Need a carry course?</h2><p className="muted">Search the catalogue and add it to this confirmation.</p><form onSubmit={searchCourses} className="search"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Course code or name"/><button aria-label="Search courses">⌕</button></form><div className="search-results">{results.map((course) => <div className="result" key={course.courseCode}><div><strong>{course.courseCode}</strong><span>{course.courseName}</span></div><button onClick={() => addCarry(course)}>+ Add</button></div>)}</div></aside></div>
     <section className="timetable"><div className="panel-heading"><div><p className="eyebrow">After confirmation</p><h2>My timetable</h2></div><span className="muted">Current revision · prototype data</span></div>{timetable.length === 0 ? <p className="empty">Confirm your courses to see matching timetable entries.</p> : <div className="schedule">{timetable.map((entry) => <article className="schedule-row" key={entry.courseCode}><div className="day">{entry.day}</div><div className="time">{entry.startTime}<br /><span>{entry.endTime}</span></div><div><strong>{entry.courseCode}</strong><p>{entry.venue} · {entry.lecturer}</p></div></article>)}</div>}</section>
   </main>;
@@ -63,23 +63,13 @@ function StudentView({ onBack }) {
 
 function AdminView({ onBack, token }) {
   const [entries, setEntries] = useState([]);
-  const [courses, setCourses] = useState([]);
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
   const [changes, setChanges] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [courseForm, setCourseForm] = useState({ courseCode: '', courseName: '', yearOfStudy: '1', stream: 'common' });
 
   const authHeaders = { Authorization: `Bearer ${token}` };
-  useEffect(() => { request('/admin/timetable', { headers: authHeaders }).then(setEntries).catch((error) => setMessage(error.message)); request('/admin/courses', { headers: authHeaders }).then(setCourses).catch((error) => setMessage(error.message)); }, []);
-
-  async function addCourse(event) {
-    event.preventDefault();
-    const response = await request('/admin/courses', { method: 'POST', headers: authHeaders, body: JSON.stringify(courseForm) });
-    setCourses((items) => [...items, response].sort((first, second) => first.courseCode.localeCompare(second.courseCode)));
-    setCourseForm({ courseCode: '', courseName: '', yearOfStudy: '1', stream: 'common' });
-    setMessage(`${response.courseCode} added to the catalogue`);
-  }
+  useEffect(() => { request('/admin/timetable', { headers: authHeaders }).then(setEntries).catch((error) => setMessage(error.message)); }, []);
 
   async function previewRevision(event) {
     event.preventDefault();

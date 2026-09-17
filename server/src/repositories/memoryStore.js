@@ -44,7 +44,7 @@ export function createMemoryStore() {
       return { deleted: true };
     },
     findSuggestedCourses(yearOfStudy, stream) {
-      return courses.filter((course) => course.yearOfStudy === yearOfStudy && (course.stream === stream || course.stream === 'common'));
+      return courses.filter((course) => course.yearOfStudy === yearOfStudy && (course.stream === stream || course.stream === 'common' || course.stream === 'all-streams' || course.stream.split('|').includes(stream)));
     },
     searchCourses(query) {
       const normalizedQuery = query.toLowerCase();

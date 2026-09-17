@@ -9,11 +9,11 @@ function toMysqlDateTime(value) {
 export function createMysqlStore(pool) {
   return {
     async listCourses() {
-      const [rows] = await pool.execute('SELECT course_id AS courseId, course_code AS courseCode, course_name AS courseName, year_of_study AS yearOfStudy, stream FROM courses ORDER BY course_code');
+      const [rows] = await pool.execute('SELECT course_id AS courseId, course_code AS courseCode, course_name AS courseName, year_of_study AS yearOfStudy, stream FROM courses WHERE active = TRUE ORDER BY course_code');
       return rows;
     },
     async findCourseByCode(courseCode) {
-      const [rows] = await pool.execute('SELECT course_id AS courseId, course_code AS courseCode, course_name AS courseName, year_of_study AS yearOfStudy, stream FROM courses WHERE course_code = ?', [courseCode]);
+      const [rows] = await pool.execute('SELECT course_id AS courseId, course_code AS courseCode, course_name AS courseName, year_of_study AS yearOfStudy, stream FROM courses WHERE course_code = ? AND active = TRUE', [courseCode]);
       return rows[0] ?? null;
     },
     async createCourse(course) {
@@ -39,8 +39,8 @@ export function createMysqlStore(pool) {
     async findSuggestedCourses(yearOfStudy, stream) {
       const [rows] = await pool.execute(
         `SELECT course_code AS courseCode, course_name AS courseName, year_of_study AS yearOfStudy, stream
-         FROM courses WHERE year_of_study = ? AND (stream = ? OR stream = 'common') ORDER BY course_code`,
-        [yearOfStudy, stream]
+         FROM courses WHERE active = TRUE AND year_of_study = ? AND (stream = ? OR stream = 'common' OR stream = 'all-streams' OR CONCAT('|', stream, '|') LIKE CONCAT('%|', ?, '|%')) ORDER BY course_code`,
+        [yearOfStudy, stream, stream]
       );
       return rows;
     },
@@ -48,7 +48,7 @@ export function createMysqlStore(pool) {
       const pattern = `%${query ?? ''}%`;
       const [rows] = await pool.execute(
         `SELECT course_code AS courseCode, course_name AS courseName, year_of_study AS yearOfStudy, stream
-         FROM courses WHERE course_code LIKE ? OR course_name LIKE ? ORDER BY course_code`,
+         FROM courses WHERE active = TRUE AND (course_code LIKE ? OR course_name LIKE ?) ORDER BY course_code`,
         [pattern, pattern]
       );
       return rows;

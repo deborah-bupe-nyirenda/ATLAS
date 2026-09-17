@@ -1,5 +1,6 @@
 import { compareTimetableEntries, inferSemesterFromCourseCode, normalizeCourseCode } from './timetableSourceProcessor.js';
 import { validateTimetableEntries } from './examTimetableProcessor.js';
+import { computingInformaticsCourseCodes } from './computingInformaticsCatalogue.js';
 
 export function createTimetableRevisionService(store) {
   return {
@@ -7,11 +8,13 @@ export function createTimetableRevisionService(store) {
       return store.findCurrentTimetable();
     },
     async preview(entries, format = 'lecture') {
-      const normalizedEntries = entries.map((entry) => ({ ...entry, courseCode: normalizeCourseCode(entry.courseCode), semester: entry.semester ?? inferSemesterFromCourseCode(entry.courseCode) }));
+      const normalizedAllEntries = entries.map((entry) => ({ ...entry, courseCode: normalizeCourseCode(entry.courseCode), semester: entry.semester ?? inferSemesterFromCourseCode(entry.courseCode) }));
+      const normalizedEntries = normalizedAllEntries.filter((entry) => computingInformaticsCourseCodes.has(entry.courseCode));
+      const ignoredCourseCodes = [...new Set(normalizedAllEntries.filter((entry) => !computingInformaticsCourseCodes.has(entry.courseCode)).map((entry) => entry.courseCode))];
       const knownCourses = await store.findCoursesByCodes([...new Set(normalizedEntries.map((entry) => entry.courseCode))]);
       const validation = validateTimetableEntries(normalizedEntries, new Set(knownCourses.map((course) => course.courseCode)), { requireDate: format === 'exam' });
       const current = await store.findCurrentTimetable();
-      return { format, validation, changes: compareTimetableEntries(current, normalizedEntries), entries: normalizedEntries };
+      return { format, validation: { ...validation, ignoredCourseCodes, rowsIgnored: normalizedAllEntries.length - normalizedEntries.length }, changes: compareTimetableEntries(current, normalizedEntries), entries: normalizedEntries };
     },
     async revise(entries) {
       const format = entries[0]?.timetableType ?? 'lecture';

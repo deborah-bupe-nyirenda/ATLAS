@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS courses (
   course_name VARCHAR(180) NOT NULL,
   year_of_study TINYINT NOT NULL,
   stream VARCHAR(80) NOT NULL DEFAULT 'common',
+  active BOOLEAN NOT NULL DEFAULT TRUE,
   department_id INT NOT NULL,
   CONSTRAINT fk_courses_department FOREIGN KEY (department_id) REFERENCES departments (department_id)
 );

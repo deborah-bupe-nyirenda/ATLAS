@@ -20,6 +20,7 @@ try {
     'ALTER TABLE timetable_entries MODIFY lecturer_id INT NULL',
     'ALTER TABLE timetable_entries ADD COLUMN event_date DATE NULL',
     "ALTER TABLE timetable_entries ADD COLUMN semester ENUM('first', 'second') NULL",
+    'ALTER TABLE courses ADD COLUMN active BOOLEAN NOT NULL DEFAULT TRUE',
     'ALTER TABLE timetable_entries ADD COLUMN session_name VARCHAR(30) NULL',
     'ALTER TABLE timetable_entries ADD COLUMN activity_type VARCHAR(30) NULL',
     'ALTER TABLE timetable_entries ADD COLUMN student_capacity INT NULL'
