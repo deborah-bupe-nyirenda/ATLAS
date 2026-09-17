@@ -50,3 +50,32 @@ test('mysql store converts ISO confirmation dates to MySQL DATETIME values', asy
   const insertCall = calls.find(({ sql }) => sql.includes('INSERT INTO course_confirmations'));
   assert.equal(insertCall.values[3], '2026-09-17 13:52:21');
 });
+
+test('mysql store creates a demo student record when one does not already exist', async () => {
+  const calls = [];
+  const pool = {
+    async execute(sql, values) {
+      calls.push({ sql, values });
+      if (sql.includes('FROM students') && sql.includes('WHERE student_number = ?')) return [[]];
+      if (sql.includes('INSERT INTO students')) return [{ insertId: 99 }];
+      if (sql.includes('INSERT INTO course_confirmations')) return [{ insertId: 2 }];
+      if (sql.includes('FROM courses')) return [[{ courseId: 7 }]];
+      return [[]];
+    },
+    async getConnection() {
+      return { beginTransaction() {}, commit() {}, rollback() {}, release() {}, execute: this.execute.bind(this) };
+    }
+  };
+  const store = createMysqlStore(pool);
+
+  await store.saveConfirmation('demo-student-3-software-engineering', {
+    academicYear: 2026,
+    semester: '1',
+    confirmationDate: '2026-09-17T13:52:21.211Z',
+    courses: [{ courseCode: 'CSC 3600', carryOrRepeat: false, yearOfStudy: 3 }]
+  });
+
+  const createdStudentCall = calls.find(({ sql }) => sql.includes('INSERT INTO students'));
+  assert.ok(createdStudentCall);
+  assert.equal(createdStudentCall.values[0], 'demo-student-3-software-engineering');
+});

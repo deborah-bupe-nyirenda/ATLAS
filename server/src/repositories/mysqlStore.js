@@ -66,9 +66,27 @@ export function createMysqlStore(pool) {
       const connection = await pool.getConnection();
       try {
         await connection.beginTransaction();
-        const [studentRows] = await connection.execute('SELECT student_id AS studentId FROM students WHERE student_number = ?', [studentId]);
-        const studentIdValue = studentRows[0]?.studentId;
+        let [studentRows] = await connection.execute('SELECT student_id AS studentId FROM students WHERE student_number = ?', [studentId]);
+        let studentIdValue = studentRows[0]?.studentId;
+
+        if (!studentIdValue) {
+          const studentYear = Number(
+            confirmation.courses.find((course) => Number.isFinite(Number(course.yearOfStudy)))?.yearOfStudy ?? 1
+          ) || 1;
+
+          await connection.execute(
+            `INSERT INTO students (student_number, name, year_of_study)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE student_id = LAST_INSERT_ID(student_id)`,
+            [studentId, 'Demo Student', studentYear]
+          );
+
+          [studentRows] = await connection.execute('SELECT student_id AS studentId FROM students WHERE student_number = ?', [studentId]);
+          studentIdValue = studentRows[0]?.studentId;
+        }
+
         if (!studentIdValue) throw new Error('Student could not be found');
+
         const [confirmationResult] = await connection.execute(
           `INSERT INTO course_confirmations (student_id, academic_year, semester, status, confirmation_date)
            VALUES (?, ?, ?, 'confirmed', ?)`
